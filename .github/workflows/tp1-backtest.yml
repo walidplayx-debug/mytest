@@ -26,7 +26,7 @@ jobs:
           freqtrade download-data \
             --config user_data/config_tp1.json \
             --pairs BTC/USDT:USDT \
-            --timeframes 5m 1h 4h \
+            --timeframes 1h 4h \
             --timerange 20230101-20261001 \
             --trading-mode futures
           freqtrade list-data --config user_data/config_tp1.json --show-timerange
@@ -36,32 +36,32 @@ jobs:
           mkdir -p results
           freqtrade backtesting --config user_data/config_tp1.json \
             --strategy TP1Strategy --timerange 20231001-20261001 \
-            --timeframe-detail 5m --fee 0.0005 --cache none \
+            --fee 0.0005 --cache none \
             --breakdown year --export trades 2>&1 | tee results/full_fee005.txt
 
       - name: Backtest full period (no costs)
         run: |
           freqtrade backtesting --config user_data/config_tp1.json \
             --strategy TP1Strategy --timerange 20231001-20261001 \
-            --timeframe-detail 5m --fee 0 --cache none 2>&1 | tee results/full_nocost.txt
+            --fee 0 --cache none 2>&1 | tee results/full_nocost.txt
 
       - name: Backtest full period (stress fee 0.10%)
         run: |
           freqtrade backtesting --config user_data/config_tp1.json \
             --strategy TP1Strategy --timerange 20231001-20261001 \
-            --timeframe-detail 5m --fee 0.001 --cache none 2>&1 | tee results/full_fee010.txt
+            --fee 0.001 --cache none 2>&1 | tee results/full_fee010.txt
 
       - name: Backtest in-sample (2023-10 to 2025-03)
         run: |
           freqtrade backtesting --config user_data/config_tp1.json \
             --strategy TP1Strategy --timerange 20231001-20250401 \
-            --timeframe-detail 5m --fee 0.0005 --cache none 2>&1 | tee results/in_sample.txt
+            --fee 0.0005 --cache none 2>&1 | tee results/in_sample.txt
 
       - name: Backtest out-of-sample (2025-04 to 2026-09)
         run: |
           freqtrade backtesting --config user_data/config_tp1.json \
             --strategy TP1Strategy --timerange 20250401-20261001 \
-            --timeframe-detail 5m --fee 0.0005 --cache none 2>&1 | tee results/out_of_sample.txt
+            --fee 0.0005 --cache none 2>&1 | tee results/out_of_sample.txt
 
       - name: Upload results
         if: always()
