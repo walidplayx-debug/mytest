@@ -1,0 +1,73 @@
+name: TP1 Backtest
+
+on:
+  workflow_dispatch:
+
+jobs:
+  backtest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install freqtrade
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -e .
+          freqtrade --version
+
+      - name: Download data
+        run: |
+          freqtrade download-data \
+            --config user_data/config_tp1.json \
+            --pairs BTC/USDT:USDT \
+            --timeframes 5m 1h 4h \
+            --timerange 20230101-20261001 \
+            --trading-mode futures
+          freqtrade list-data --config user_data/config_tp1.json --show-timerange
+
+      - name: Backtest full period (fee 0.05%)
+        run: |
+          mkdir -p results
+          freqtrade backtesting --config user_data/config_tp1.json \
+            --strategy TP1Strategy --timerange 20231001-20261001 \
+            --timeframe-detail 5m --fee 0.0005 --cache none \
+            --breakdown year --export trades 2>&1 | tee results/full_fee005.txt
+
+      - name: Backtest full period (no costs)
+        run: |
+          freqtrade backtesting --config user_data/config_tp1.json \
+            --strategy TP1Strategy --timerange 20231001-20261001 \
+            --timeframe-detail 5m --fee 0 --cache none 2>&1 | tee results/full_nocost.txt
+
+      - name: Backtest full period (stress fee 0.10%)
+        run: |
+          freqtrade backtesting --config user_data/config_tp1.json \
+            --strategy TP1Strategy --timerange 20231001-20261001 \
+            --timeframe-detail 5m --fee 0.001 --cache none 2>&1 | tee results/full_fee010.txt
+
+      - name: Backtest in-sample (2023-10 to 2025-03)
+        run: |
+          freqtrade backtesting --config user_data/config_tp1.json \
+            --strategy TP1Strategy --timerange 20231001-20250401 \
+            --timeframe-detail 5m --fee 0.0005 --cache none 2>&1 | tee results/in_sample.txt
+
+      - name: Backtest out-of-sample (2025-04 to 2026-09)
+        run: |
+          freqtrade backtesting --config user_data/config_tp1.json \
+            --strategy TP1Strategy --timerange 20250401-20261001 \
+            --timeframe-detail 5m --fee 0.0005 --cache none 2>&1 | tee results/out_of_sample.txt
+
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tp1-results
+          path: |
+            results
+            user_data/backtest_results
